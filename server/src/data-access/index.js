@@ -1,11 +1,10 @@
 import makeUsersDb from "./users-db";
 import sqlite3 from "sqlite3";
-import path, { dirname } from 'path';
 
 
 const sqlite = sqlite3.verbose();
 
-let db = new sqlite.Database('../../users.db', (err) => {
+let db = new sqlite.Database('./users1.db', (err) => {
   if (err) {
     return console.error('error while opening database',err.message);
   }
