@@ -1,0 +1,272 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.webix.com/edge/webix.css" type="text/css">
+    <link rel="stylesheet" type="text/css" href="checkboxStyle.css">
+    <script src="https://cdn.webix.com/edge/webix.js" type="text/javascript"></script>
+    <title>Document</title>
+</head>
+<style>
+    div.container {
+        display: flex;
+        flex-direction: row;
+        flex-grow: 1;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    div.canvasContainer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+    }
+
+    div.innerContainer {
+        display: flex;
+        flex-direction: row;
+        flex-grow: 1;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    div.subContainer {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    input.button1 {
+        display: inline-block;
+        padding: 0.35em 1.2em;
+        border: 0.1em solid rgb(51, 136, 233);
+        margin: 0 0.3em 0.3em 0;
+        border-radius: 0.12em;
+        box-sizing: border-box;
+        text-decoration: none;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 300;
+        color: rgb(51, 136, 233);
+        width: 100px;
+        height: 40px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    input.button1:hover {
+        color: #FFFFFF;
+        background-color: rgb(88, 151, 223);
+    }
+
+    @media all and (max-width:30em) {
+        input.button1 {
+            display: block;
+            margin: 0.4em auto;
+        }
+    }
+</style>
+
+<body>
+
+    <div id="myDiv" class='canvasContainer'>
+        <canvas id="myCanvas" width="600" height="400" style="border:1px solid #000000;"></canvas>
+    </div>
+
+    <script>
+        const toBeRemoved = {}
+
+        const fetchRoles = () => {
+            webix.ajax("http://localhost:8000/all-roles").then(function (data) {
+                console.log('webiux response select:', data.json().roles)
+                $$('roles_select').define("options", data.json().roles);
+                $$('roles_select').refresh();
+            });
+        }
+
+        fetchRoles()
+
+        const c = document.getElementById("myCanvas");
+        const ctx = c.getContext("2d");
+        const { width, height } = c.getBoundingClientRect();
+        const x = (width - (0.7 * width)) / 2;
+        const y = (height - (0.7 * height)) / 2
+        console.log(width, height)
+        ctx.fillStyle = 'green'
+
+        ctx.fillRect(x, y, 0.7 * width, 0.7 * height)
+
+        webix.ui({
+
+            cols: [
+                {
+                    rows: [
+                        {
+                            view: "toolbar", elements: [
+                                {
+                                    view: 'button', label: 'Add User', minHeight: 80, click: function (id, event) {
+                                        $$('user_form').clear()
+                                        $$('add_btn').config.value = 'Add'
+                                        $$('add_btn').refresh()
+                                    }
+                                },
+                                {
+                                    view: 'button', label: 'Remove User', minHeight: 80, click: function (id, event) {
+                                        const emails = []
+                                        for (let key in toBeRemoved) {
+                                            if (toBeRemoved.hasOwnProperty(key)) {
+                                                emails.push(toBeRemoved[key]);
+                                            }
+                                        };
+
+                                        webix.ajax().headers({
+                                            "Content-type": "application/json"
+                                        }).post("http://localhost:8000/remove-user", { emails })
+                                            .then(data => {
+                                                console.log('api response remove user', data.json())
+
+                                                $$('user_list').load($$('user_list').config.url)
+                                            })
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            view: "list", id: 'user_list',
+                            url: {
+                                $proxy: true,
+                                load: function (view, params) {
+                                    $$('user_list').clearAll()
+                                    return webix.ajax("http://localhost:8000/all-users").then(function (data) {
+                                        console.log('webiux response:', data.json().users)
+                                        return data.json().users;
+                                    });
+                                },
+
+                            },
+                            template: `<div class='container'>
+                                <div class='innerContainer'>
+                                    <label  class="checkbox-label">
+                                        <input  type="checkbox">
+                                        <span class="checkbox-custom rectangular"></span>
+                                    </label>
+                                <div class='subContainer'>   
+                                <span>#firstName# #lastName#</span>
+                                <span>#roleName#</span>
+                                </div>
+                                </div>
+                                <input type='button' class="button1" value='Edit'/>
+                                </div>`,
+                            type: {
+                                height: 'auto'
+                            },
+                            onClick: {
+                                "button1": function (e, id, trg) {
+                                    // webix.message("Delete row: " + id);
+                                    const item = this.getItem(id);
+                                    $$("user_form").setValues(item);
+                                    $$('add_btn').config.value = 'Update'
+                                    $$('add_btn').refresh()
+                                    return false; // here it blocks the default behavior
+                                },
+                                "checkbox-label": function (e, id, trg) {
+                                    if (!trg.children[0].checked) {
+                                        toBeRemoved[id] = this.getItem(id).emailId;
+                                    } else {
+                                        delete toBeRemoved[id]
+                                    }
+                                }
+
+                            },
+
+                            data: [], gravity: 1, minHeight: 600
+                        },
+                    ], gravity: 3
+                },
+                {
+                    rows: [
+                        {
+                            view: 'form', id: 'user_form', padding: 100, elements: [
+                                {
+                                    view: "text", label: "First Name", name: "firstName", invalidMessage: 'First name can not be empty', placeholder: "(e.g. John)",
+                                },
+                                { view: "text", label: "Last Name", name: "lastName", placeholder: "(e.g. Smith)", invalidMessage: 'Last name can not be empty' },
+                                { view: "text", label: "Email", name: "emailId", placeholder: "(e.g. john@some.com)", invalidMessage: 'Email can not be empty' },
+                                {
+                                    view: "select", id: 'roles_select', label: "Roles", value: 1, options: [],
+                                    labelAlign: "right", margin: 100, name: 'role'
+                                },
+                                {
+                                    margin: 5, cols: [
+                                        {
+                                            view: "button", id: 'add_btn', value: "Add", css: "webix_primary",
+                                            click: function (id, event) {
+                                                // your code here
+                                                const isvalid = $$('user_form').validate()
+                                                console.log("check validation", isvalid)
+                                                if (isvalid) {
+                                                    const formData = $$('user_form').getValues();
+
+
+                                                    webix.ajax().headers({
+                                                        "Content-type": "application/json"
+                                                    }).post("http://localhost:8000/add-user", { ...formData, role: parseInt(formData.role) })
+                                                        .then(data => {
+                                                            console.log('api response', data)
+                                                            webix.message(data.json().message);
+                                                            clearList()
+                                                        })
+                                                }
+
+                                            }
+                                        },
+                                        {
+                                            view: "button", value: "Clear",
+                                            click: function (id, event) {
+                                                // your code here
+                                                webix.message("Click on button clear " + id);
+                                                $$('user_form').clear();
+                                                // "Click on button btn1"
+                                            }
+                                        }
+                                    ]
+                                }], rules: {
+                                    firstName: function (value) {
+                                        return value && webix.rules.isNotEmpty(value)
+                                    },
+                                    lastName: function (value) {
+                                        return value && webix.rules.isNotEmpty(value)
+                                    },
+                                    emailId: function (value) {
+                                        return value && webix.rules.isEmail(value)
+                                    }
+                                }
+                        },
+
+                        {
+                            content: "myDiv"
+                        }
+                    ], gravity: 5
+                }
+            ]
+
+        });
+
+         function clearList() {
+             const list = $$('user_list')
+            //  list.clear()
+             list.load(list.config.url)
+             list.refresh()   
+             $$('user_form').clear()
+             $$('user_form').refresh()
+        }
+
+
+    </script>
+
+</body>
+
+</html>
