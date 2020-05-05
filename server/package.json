@@ -15,21 +15,12 @@
   "license": "",
   "dependencies": {
     "@devmastery/pipe": "^0.0.6",
-    "axios": "^0.18.0",
     "babel-plugin-inline-dotenv": "^1.2.2",
-    "bcrypt": "3.0.8",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "cuid": "^2.1.6",
     "express": "^4.16.4",
-    "ip-regex": "^4.0.0",
     "is-valid-email": "0.0.4",
-    "nodemailer": "^6.4.6",
-    "otp-generator": "^1.1.0",
-    "p-reduce": "^2.0.0",
-    "passport": "^0.4.1",
-    "passport-jwt": "^4.0.0",
-    "sanitize-html": "^1.20.0",
     "sqlite3": "^4.2.0"
   },
   "devDependencies": {
